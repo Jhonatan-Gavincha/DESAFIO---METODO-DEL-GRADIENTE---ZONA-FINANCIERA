@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Desafío de Métodos Numéricos | Gradientes Conjugados Precondicionados</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="inicio">
+ <div class="eyebrow">Métodos Numéricos · UMSA · Ingeniería de Sistemas</div>
+ <h1>Planificación financiera con Gradientes Conjugados Precondicionados</h1>
+ <p class="sub">Simulador interactivo para distribuir recursos entre seis áreas de una empresa. Compara la solución directa, Gradientes Conjugados (GC) y Gradientes Conjugados Precondicionados (GCP) en tres escenarios financieros.</p>
+ <div class="meta"><span class="pill">Sistema Ax = b</span><span class="pill">Tolerancia relativa: 10⁻⁶</span><span class="pill">Precondicionador: Jacobi</span><span class="pill">Aplicación financiera ilustrativa</span></div>
+ <div class="student-strip"><span><b>Estudiante:</b> Jhonatan Pongo Gavincha</span><span><b>Mención:</b> Ingeniería de Sistemas</span><span><b>Universidad:</b> UMSA · FCPN</span></div>
+</header>
+<nav><a href="#caso">Caso</a><a href="#formulacion">Formulación</a><a href="#sistemas">Modelado IS</a><a href="#datos">Entrada</a><a href="#escenarios">Escenarios</a><a href="#referencia">Referencia</a><a href="#resultados">GCP vs GC</a><a href="#errores">Errores</a><a href="#qa">QA</a><a href="#conclusiones">Conclusiones</a></nav>
+<main>
+<section class="section" id="caso"><h2>1. Caso de estudio</h2>
+<p>Una empresa debe planificar la asignación de recursos entre seis áreas. El modelo representa el equilibrio de una función cuadrática de costo: la diagonal de <b>A</b> expresa la sensibilidad/costo propio de cada área, mientras que los términos fuera de la diagonal representan interdependencias entre áreas. El vector <b>b</b> representa metas financieras ponderadas. La solución es el punto que satisface las condiciones de equilibrio del modelo.</p>
+<div class="grid3">
+<div class="card"><h3>Ideal</h3><p class="muted small">Costos e interdependencias moderados. Se espera una solución estable.</p></div>
+<div class="card"><h3>Bajo estrés</h3><p class="muted small">Aumenta la presión de costos/interdependencia y cambian las metas por inflación o caída de ingresos.</p></div>
+<div class="card"><h3>Mal condicionado</h3><p class="muted small">Las escalas de costos entre áreas difieren mucho. Jacobi escala cada variable por su diagonal.</p></div>
+</div>
+<div class="proof-box"><strong>Justificación financiera del modelo</strong>
+<ul class="list">
+<li><b>Función de costo.</b> Se minimiza f(x) = ½xᵀAx − bᵀx, con x en MM Bs. La diagonal a<sub>ii</sub> es el costo propio del área i (rendimientos decrecientes de cada boliviano adicional).</li>
+<li><b>Acoplamientos a<sub>ij</sub>.</b> Se modela la cadena de valor Tecnología → Operaciones → Marketing → Logística → Personal → Innovación; solo las áreas consecutivas comparten procesos (ver sección 3). El signo negativo indica <i>complementariedad</i>: invertir en un área reduce el costo marginal de su vecina.</li>
+<li><b>Vector b.</b> Se construye como b = A·x<sub>meta</sub>, donde x<sub>meta</sub> es la asignación objetivo de la gerencia (MM Bs.). Cada b<sub>i</sub> es la meta ponderada por las interdependencias, y el equilibrio recupera exactamente la asignación objetivo, lo que permite medir el error con rigor.</li>
+<li><b>Bajo estrés.</b> Los costos propios suben 10 % (diagonal de C: 4,0 → 4,4, por inflación), la interdependencia aumenta (0,7 → 1,25, por restricciones de presupuesto compartido) y las metas se recortan entre 11 % y 17 % por caída de ingresos, salvo Logística, que sube 18 % por mayores costos de transporte.</li>
+<li><b>Mal condicionado.</b> Las áreas se miden en escalas monetarias muy distintas (D = diag(1, 3, 10, 30, 100, 300)): equivale a mezclar unidades monetarias de magnitudes dispares. Es mal escalamiento diagonal, por eso corresponde el precondicionador de Jacobi.</li>
+<li><b>Procedencia de los datos.</b> Son sintéticos, definidos por el estudiante con fines académicos; no provienen de una empresa real.</li></ul></div>
+<p class="small muted">Nota metodológica: los valores iniciales son datos sintéticos con fines académicos, no cifras de una empresa real. Los coeficientes deben interpretarse como ponderaciones del modelo de costo, no como tasas de interés observadas.</p></section>
+<section class="section" id="formulacion"><h2>2. Variables y formulación</h2>
+<p>Las variables x<sub>i</sub> representan el nivel de recursos planificado, en millones de Bolivianos (MM Bs.).</p>
+<div class="tablewrap"><table><thead><tr><th>Variable</th><th>Área</th><th>Interpretación</th></tr></thead><tbody>
+<tr><td>x₁</td><td>Tecnología</td><td>Recursos asignados a sistemas y equipos</td></tr><tr><td>x₂</td><td>Operaciones</td><td>Recursos para funcionamiento diario</td></tr><tr><td>x₃</td><td>Marketing</td><td>Recursos para promoción y ventas</td></tr><tr><td>x₄</td><td>Logística</td><td>Recursos para distribución</td></tr><tr><td>x₅</td><td>Personal</td><td>Recursos para formación y capacidad operativa</td></tr><tr><td>x₆</td><td>Innovación</td><td>Recursos para mejora y nuevos proyectos</td></tr>
+</tbody></table></div>
+<p>El sistema es <b>Ax = b</b>. La matriz A debe ser simétrica y definida positiva (SPD), condición necesaria para la convergencia estándar de GC/GCP. La página verifica la simetría y aplica factorización de Cholesky como prueba numérica de definición positiva.</p>
+<div class="proof-box"><strong>Justificación matemática de los tres escenarios</strong><p>En cada escenario se construye <b>A = D C D</b>, donde <b>D</b> es diagonal con entradas positivas y <b>C</b> es simétrica, tridiagonal y tiene diagonal positiva. Para el caso ideal, la diagonal de C es 4 y el valor fuera de la diagonal es −0,7: <b>4 &gt; 2·0,7 = 1,4</b>. En bajo estrés, la diagonal es 4,4 y el valor fuera de la diagonal es −1,25: <b>4,4 &gt; 2·1,25 = 2,5</b>. En el caso mal condicionado, la diagonal es 4 y el valor fuera de la diagonal es −1: <b>4 &gt; 2·1 = 2</b>. Por tanto, C es estrictamente diagonal dominante y simétrica con diagonal positiva, lo que garantiza que es definida positiva. Como D es invertible, para todo vector no nulo <b>v</b>, se cumple <b>vᵀAv = (Dv)ᵀC(Dv) &gt; 0</b>; así, A también es simétrica definida positiva en los tres escenarios. La validación de Cholesky comprueba esta propiedad numéricamente para los datos cargados, incluso después de editarlos.</p></div>
+<h3>Sistema de ecuaciones Ax = b (datos cargados actualmente)</h3>
+<div id="sysEq" class="formula"></div>
+<h3>Interpretación de los coeficientes</h3>
+<ul class="list"><li><b>a<sub>ii</sub> &gt; 0:</b> costo propio de la unidad i. <b>a<sub>ij</sub> = a<sub>ji</sub> &lt; 0:</b> sinergia mutua entre áreas vecinas. <b>b<sub>i</sub>:</b> meta financiera ponderada del área i.</li></ul>
+<h3>Verificación de A = Aᵀ y definida positiva en los tres escenarios</h3>
+<p class="small muted">Autovalores positivos y criterio de Sylvester (menores principales) calculados por el programa. Además se cumple la prueba teórica anterior (dominancia diagonal).</p>
+<div id="spdTable" class="tablewrap"></div><div id="spdCurrent" class="status">—</div>
+<div class="formula">Función cuadrática ilustrativa:
+f(x) = ½ xᵀ A x − bᵀ x
+
+Condición de equilibrio:
+∇f(x) = Ax − b = 0  ⇒  Ax = b</div>
+<p class="small muted">A continuación puedes editar A, b y el vector inicial. El sistema se valida antes de ejecutar los algoritmos.</p></section>
+<section class="section" id="sistemas"><h2>3. Modelado organizacional (aporte de Ingeniería de Sistemas)</h2>
+<p>Desde la ingeniería de sistemas, la empresa se modela como una cadena de procesos interdepartamentales. Cada proceso genera una dependencia entre áreas, que se traduce en un coeficiente a<sub>ij</sub> de la matriz A.</p>
+<h3>Procesos y flujo interdepartamental</h3>
+<div class="tablewrap"><table><thead><tr><th>Par de áreas</th><th>Proceso de negocio</th><th>Coeficiente</th></tr></thead><tbody>
+<tr><td>Tecnología ↔ Operaciones</td><td>Los sistemas soportan la operación diaria; la operación demanda infraestructura</td><td>a₁₂ = a₂₁ &lt; 0</td></tr>
+<tr><td>Operaciones ↔ Marketing</td><td>La capacidad operativa limita lo que se puede prometer y vender</td><td>a₂₃ = a₃₂ &lt; 0</td></tr>
+<tr><td>Marketing ↔ Logística</td><td>Más ventas generan más volumen de distribución</td><td>a₃₄ = a₄₃ &lt; 0</td></tr>
+<tr><td>Logística ↔ Personal</td><td>Distribuir requiere personal capacitado</td><td>a₄₅ = a₅₄ &lt; 0</td></tr>
+<tr><td>Personal ↔ Innovación</td><td>La formación habilita nuevos proyectos</td><td>a₅₆ = a₆₅ &lt; 0</td></tr></tbody></table></div>
+<h3>Flujo de caja interdepartamental (equilibrio de los datos cargados)</h3>
+<div id="cashTable" class="tablewrap"></div>
+<div class="kpis"><div class="kpi"><div class="label">Presupuesto total Σx</div><div class="value" id="totalBudget">—</div></div><div class="kpi"><div class="label">Valor organizacional f(x*)</div><div class="value" id="valorOrg">—</div></div></div>
+<p class="small muted">Valor organizacional = costo neto mínimo f(x*) = −½ bᵀx*. Cuanto más negativo, más valor neto genera la asignación para la organización.</p>
+<h3>Reglas de negocio validadas</h3><div id="rulesTable" class="tablewrap"></div></section>
+<section class="section" id="datos"><h2>4. Entrada de datos y ejecución</h2>
+
+<div class="formrow"><label for="scenario">Escenario seleccionado:</label><select id="scenario"><option value="ideal">Ideal</option><option value="stress">Bajo estrés financiero</option><option value="ill">Mal condicionado</option></select><button class="secondary" id="loadScenario">Cargar escenario</button><label for="tol">Tolerancia:</label><input id="tol" type="number" value="0.000001" min="0.0000000001" step="0.000001"><label for="maxit">Iteraciones máximas:</label><input id="maxit" type="number" value="100" min="1" step="1"></div>
+<div class="formrow" style="margin-top:10px"><label for="preconditioner">Precondicionador GCP:</label><select id="preconditioner"><option value="jacobi">Jacobi (diagonal)</option><option value="none">Sin precondicionador (control)</option></select><button class="primary" id="run">Validar y ejecutar</button><button class="secondary" id="reset">Restaurar escenario</button><label><input type="checkbox" id="keepSym" checked> Mantener simetría automática (desmarca para probar una matriz no simétrica)</label></div>
+<h3 style="margin-top:20px">Matriz A editable</h3><div id="matrixWrap" class="tablewrap"></div>
+<h3>Vector b editable</h3><div id="bWrap" class="tablewrap"></div>
+<h3>Vector inicial x₀ editable</h3><div id="x0Wrap" class="tablewrap"></div>
+<h3>Matriz precondicionadora M</h3><p id="mWrap" class="small"></p>
+<div id="validation" class="status">Carga un escenario y pulsa “Validar y ejecutar”.</div>
+</section>
+<section class="section" id="escenarios"><h2>5. Tres escenarios</h2>
+<div class="actions scenario-actions"><button type="button" data-load-scenario="ideal">Cargar Ideal</button><button type="button" data-load-scenario="stress">Cargar Bajo estrés</button><button type="button" data-load-scenario="ill">Cargar Mal condicionado</button></div>
+<p class="small muted">Los tres comparten las mismas seis variables y la estructura A = D·C·D (C tridiagonal, D diagonal). Cambian los parámetros de forma fundamentada. Al cargar uno, se ejecuta automáticamente.</p>
+<div class="grid3">
+<div class="card"><h3>Ideal</h3><p class="small">C: diagonal 4, vecinas −0,7; D cercana a 1. Estabilidad y sinergias débiles; κ bajo.</p></div>
+<div class="card"><h3>Bajo estrés</h3><p class="small">C: diagonal 4,4 (inflación), vecinas −1,25 (más interdependencia); metas b recortadas por caída de ingresos (Logística sube).</p></div>
+<div class="card"><h3>Mal condicionado</h3><p class="small">C como en el ideal pero con D = diag(1, 3, 10, 30, 100, 300): mal escalamiento entre unidades; se usa Jacobi.</p></div></div>
+<h3>Análisis del estrés: ¿cambia el condicionamiento o solo se desplaza el equilibrio?</h3>
+<div id="stressTable" class="tablewrap"></div><p id="stressText"></p></section>
+<section class="section" id="referencia"><h2>6. Solución numérica de referencia (método directo)</h2>
+<p>Se resuelve Ax = b por eliminación de Gauss con pivoteo parcial; el vector obtenido es la solución numérica de referencia (la tabla comparativa de la sección 7 la muestra para los tres escenarios).</p>
+<div id="refTable" class="tablewrap"></div></section>
+<section class="section" id="resultados"><h2>7. GCP vs GC: iteraciones, residuos y diagnósticos</h2>
+<button type="button" class="secondary" onclick="document.getElementById('datos').scrollIntoView({behavior:'smooth'})">↑ Volver a la entrada de datos</button>
+<div class="kpis">
+<div class="kpi"><div class="label">κ₂(A)</div><div class="value" id="kA">—</div></div>
+<div class="kpi"><div class="label">κ₂ precondicionada</div><div class="value" id="kP">—</div></div>
+<div class="kpi"><div class="label">Iteraciones GC / GCP</div><div class="value" id="iters">—</div></div>
+<div class="kpi"><div class="label">Residuo relativo GCP</div><div class="value" id="resid">—</div></div>
+</div>
+<div id="resultsStatus" class="status">Los resultados aparecerán al ejecutar un escenario válido.</div>
+<div class="two-col">
+<div><h3>Vectores aproximados (referencia, GC y GCP)</h3><div id="solutionTable" class="tablewrap"></div></div>
+<div><h3>Convergencia: residuo relativo por iteración</h3><canvas id="chart" class="chart" width="760" height="360" aria-label="Gráfico de convergencia"></canvas><p class="small muted">Eje vertical logarítmico. La curva muestra ||rₖ||₂ / ||b||₂.</p></div>
+</div>
+<h3>Tabla comparativa de los tres escenarios</h3><p class="small muted">Calculada con tolerancia 10⁻⁶, Nmáx = 100, x₀ = 0 y Jacobi.</p><div id="comparison" class="tablewrap"></div>
+</section>
+<section class="section" id="errores"><h2>8. Análisis de errores</h2>
+<p>Se toma como referencia la solución del método directo (eliminación de Gauss con pivoteo parcial). Los errores se calculan comparando esa solución con la aproximación GCP.</p>
+<div class="formula">Error absoluto: Ea,i = |xref,i − xGCP,i|
+Error relativo: Er,i = Ea,i / |xref,i|  (si xref,i ≠ 0)
+Error porcentual: Ep,i = 100 · Er,i
+Residuo relativo: ||b − A xGCP||₂ / ||b||₂</div>
+<div id="errorTable" class="tablewrap"></div>
+</section>
+<section class="section" id="qa"><h2>9. Módulo de pruebas de software (QA)</h2>
+<p>Las pruebas se ejecutan con las matrices de escenario y la configuración actual. “Resultado esperado” describe el comportamiento requerido; “obtenido” indica lo que comprobó esta página.</p>
+<div class="actions"><button id="runQA">Ejecutar pruebas QA</button></div><div id="qaTable" class="tablewrap"></div>
+</section>
+<section class="section" id="conclusiones"><h2>10. Conclusiones y referencias</h2>
+<div id="conclusionText"><p>Ejecuta los escenarios para generar conclusiones basadas en los resultados numéricos.</p></div>
+<h3>Referencias</h3>
+<ul class="list">
+<li>Suñagua S., P. (2020). <i>Método de Gradientes Conjugados Precondicionado.</i> Revista Boliviana de Matemática – UMSA, 04, 2–7.</li>
+<li>Golub, G. H., &amp; Van Loan, C. F. (2013). <i>Matrix Computations</i> (4.ª ed.). Johns Hopkins University Press.</li>
+<li>Saad, Y. (2003). <i>Iterative Methods for Sparse Linear Systems</i> (2.ª ed.). SIAM.</li>
+<li>Fuente de datos: valores sintéticos definidos por el estudiante para este desafío (sección 1); no provienen de una empresa real.</li>
+</ul>
+<p class="small muted">Proyecto académico individual. Los valores son sintéticos y demostrativos; no representan datos contables reales ni recomendaciones de inversión.</p>
+</section>
+</main>
+<footer>Desafío académico de Métodos Numéricos · Carrera de Informática · UMSA</footer>
+<script src="script.js"></script>
+</body>
+</html>
