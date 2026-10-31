@@ -120,3 +120,5 @@ document.querySelectorAll('[data-load-scenario]').forEach(btn=>btn.addEventListe
 $('loadScenario').addEventListener('click',()=>{loadScenario($('scenario').value);goResults()});$('run').addEventListener('click',()=>{runAll();goResults()});$('reset').addEventListener('click',()=>loadScenario($('scenario').value));$('scenario').addEventListener('change',()=>loadScenario($('scenario').value));['tol','maxit','preconditioner'].forEach(id=>$(id).addEventListener('change',runAll));
 $('runQA').addEventListener('click',runQA);
 loadScenario('ideal');runQA();
+
+

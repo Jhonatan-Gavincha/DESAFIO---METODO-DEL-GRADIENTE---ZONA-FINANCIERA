@@ -213,7 +213,6 @@ button {
 .section-head p {
     color: var(--muted);
 }
-
 .formula-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
