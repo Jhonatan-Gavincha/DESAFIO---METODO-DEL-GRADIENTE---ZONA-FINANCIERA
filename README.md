@@ -1,7 +1,7 @@
 # Planificación financiera con Gradientes Conjugados Precondicionados (GCP)
 
 **Universidad Mayor de San Andrés · Facultad de Ciencias Puras y Naturales · Carrera de Informática**
-**Desafío académico de Métodos Numéricos · Mención: Ingeniería de Sistemas · Modalidad individual**
+**Desafío académico de Métodos Numéricos · Mención: Ingeniería de Sistemas**
 **Estudiante:** Jhonatan Pongo Gavincha · **Tolerancia:** 1e-6
 
 Aplicación web interactiva que modela la distribución de presupuesto entre seis áreas de una empresa como un sistema lineal `Ax = b` con `A` simétrica definida positiva (SPD). Lo resuelve con el método de Gradientes Conjugados Precondicionado (Suñagua, 2020), lo contrasta con Gradientes Conjugados simple y con un método directo de referencia (Gauss con pivoteo parcial), y lo analiza en tres escenarios: Ideal, Bajo estrés y Mal condicionado.
